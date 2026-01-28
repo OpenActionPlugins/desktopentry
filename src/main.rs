@@ -158,7 +158,7 @@ fn launch_app(app_path: Option<&str>, custom_args: Option<&str>) {
 		.current_dir(std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_owned()))
 		.stdout(Stdio::null())
 		.stderr(Stdio::null())
-		.spawn()
+		.status()
 	{
 		log::error!("Failed to launch {}: {e}", full_command);
 	}
