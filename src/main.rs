@@ -3,6 +3,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use base64::{Engine as _, engine::general_purpose};
+use fork::{Fork, fork, redirect_stdio, setsid, waitpid};
 use freedesktop_desktop_entry::{DesktopEntry, Iter, default_paths};
 use openaction::*;
 use serde::{Deserialize, Serialize};
@@ -153,15 +154,54 @@ fn launch_app(app_path: Option<&str>, custom_args: Option<&str>) {
 	};
 
 	log::info!("Launching: {}", full_command);
-	if let Err(e) = Command::new(command)
-		.args(args)
-		.current_dir(std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_owned()))
-		.stdout(Stdio::null())
-		.stderr(Stdio::null())
-		.spawn()
-	{
-		log::error!("Failed to launch {}: {e}", full_command);
-	}
+    match fork() {
+        // Child is responsible for spawning the process.
+        Ok(Fork::Child) => {
+            // Exit child process if we can't setsid or close stdio.
+            if let Err(e) = setsid() {
+                log::error!("error calling setsid: {e}");
+                std::process::exit(1);
+            }
+
+            if let Err(e) = redirect_stdio() {
+                log::error!("error redirecting stdio: {e}");
+                std::process::exit(1);
+            }
+
+            // Return an error code if there's a problem spawning the program.
+            // We can't do anything, but the parent will report on it at least.
+            if let Err(e) = Command::new(command)
+                .args(args)
+                .current_dir(std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_owned()))
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+            {
+                log::error!("Failed to launch {full_command}: {e}");
+                std::process::exit(1);
+            }
+
+            // We've successfully spawned our process and can exit.
+            // The above process will end up parented to something else (likely
+            // the desktop session) and should be correctly reaped when it
+            // exits (no zombies).
+            std::process::exit(0);
+        },
+
+        // The parent waits for the child, this should be brief because the
+        // child spawns a new process and exits immediately.
+        Ok(Fork::Parent(child_pid)) => {
+            match waitpid(child_pid) {
+                Ok(status) => {
+                    log::debug!("child ({child_pid}) exited with status: {status}");
+                },
+                Err(e) => {
+                    log::debug!("error waiting for forked pid {child_pid}: {e}");
+                },
+            }
+        },
+        Err(e) => log::error!("couldn't fork: {e}"),
+    }
 }
 
 fn find_app(path: &str) -> Option<AppInfo> {
