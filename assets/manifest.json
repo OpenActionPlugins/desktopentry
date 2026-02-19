@@ -1,7 +1,7 @@
 {
 	"Name": "Linux App Launcher",
 	"Author": "nekename",
-	"Version": "1.0.0",
+	"Version": "1.0.1",
 	"Category": "App Launcher",
 	"Icon": "icon",
 	"OS": [{ "Platform": "linux" }],
