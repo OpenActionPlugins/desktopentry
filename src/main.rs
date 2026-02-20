@@ -1,12 +1,12 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use base64::{Engine as _, engine::general_purpose};
 use freedesktop_desktop_entry::{DesktopEntry, Iter, default_paths};
+use freedesktop_icons::lookup;
 use openaction::*;
 use serde::{Deserialize, Serialize};
-use tux_icons::icon_fetcher::IconFetcher;
 
 fn is_flatpak() -> bool {
 	use std::env::var;
@@ -70,12 +70,19 @@ impl Action for LaunchAppAction {
 	}
 }
 
+fn get_icon_path_from_desktop_entry(desktop_entry_path: impl Into<PathBuf>) -> Option<PathBuf> {
+	let locales: &[&str] = &[];
+	let entry = DesktopEntry::from_path(desktop_entry_path, locales.into()).ok()?;
+	let icon = entry.icon()?.to_owned();
+	lookup(&icon).with_size(256).find()
+}
+
 async fn update_icon(instance: &Instance, settings: &LaunchAppSettings) -> OpenActionResult<()> {
 	let icon = settings
 		.app
 		.as_deref()
 		.filter(|s| !s.is_empty())
-		.and_then(|path| IconFetcher::new().get_icon_path_from_desktop(path))
+		.and_then(get_icon_path_from_desktop_entry)
 		.and_then(|path| icon_to_base64(&path))
 		.unwrap_or_else(|| "icon".to_owned());
 
