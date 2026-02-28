@@ -42,7 +42,7 @@
 		{@const app = apps.find((a) => a.path == selectedApp)}
 		{#if app}
 			<div
-				class="space-y-1.5 rounded border border-neutral-700 bg-neutral-800 p-3 text-sm"
+				class="space-y-1.5 rounded-lg border border-neutral-600 bg-neutral-700 p-3 text-sm"
 			>
 				<div class="flex">
 					<span class="w-12 font-medium text-neutral-400">Path</span>
@@ -79,7 +79,7 @@
 				value={$actionSettings.args}
 				oninput={handleArgs}
 				placeholder="e.g. --fullscreen --debug"
-				class="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 focus:border-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:outline-none"
+				class="w-full rounded-lg border border-neutral-600 bg-neutral-700 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 focus:border-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:outline-none"
 			/>
 		</div>
 	{/if}
